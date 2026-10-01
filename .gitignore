@@ -1,0 +1,13 @@
+# Build output
+.build/
+build/
+dist/
+*.dmg
+*.zip
+
+# macOS
+.DS_Store
+
+# Local notes for the developer's own Claude Code sessions (contain personal setup details)
+CLAUDE.md
+.claude/
