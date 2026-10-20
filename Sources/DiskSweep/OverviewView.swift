@@ -34,6 +34,8 @@ struct DashboardView: View {
                 }
                 .fixedSize(horizontal: false, vertical: true)
 
+                InsightsTeaser()
+
                 ForEach(Category.sections.dropFirst(), id: \.title) { section in
                     VStack(alignment: .leading, spacing: 10) {
                         Text(section.title).font(.headline)

@@ -144,6 +144,12 @@ final class Scanner: @unchecked Sendable {
         for keyPath in [\ScanResult.junk, \.developer, \.aiModels, \.installers, \.apps, \.leftovers, \.music] as [WritableKeyPath<ScanResult, [Item]>] {
             result[keyPath: keyPath].sort { $0.size > $1.size }
         }
+
+        setPhase("Working out what's using your space…")
+        // The layout-snapshot tool must not overwrite the real size history.
+        let snapshotRun = ProcessInfo.processInfo.environment["DISKSWEEP_SNAPSHOT_DIR"] != nil
+        result.insights = StorageAnalyst(result: result, saveHistory: !snapshotRun).run()
+        if isCancelled { return nil }
         result.duration = Date().timeIntervalSince(start)
         return result
     }

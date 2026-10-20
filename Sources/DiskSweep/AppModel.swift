@@ -63,6 +63,8 @@ final class AppModel: ObservableObject {
     @Published private(set) var trashEntries: [TrashEntry]?
     @Published var trashSelection: Set<String> = []
     @Published var trashMessage: String?
+    /// Short confirmation shown on the Storage Insights page, e.g. after copying a command.
+    @Published var insightsMessage: String?
     @Published private(set) var lifetime = LifetimeStats.load() {
         didSet { if lifetime != oldValue { lifetime.save() } }
     }
@@ -287,6 +289,7 @@ final class AppModel: ObservableObject {
         newTotals[.trash] = trashEntries.map { $0.reduce(0) { $0 + $1.size } } ?? result.trashSize ?? 0
         newTotals[.spaceLens] = result.scannedBytes
         newTotals[.dashboard] = recommended(in: newLists).reduce(0) { $0 + $1.size }
+        newTotals[.insights] = result.insights?.reclaimable ?? 0
         lists = newLists
         totals = newTotals
     }
@@ -300,6 +303,7 @@ final class AppModel: ObservableObject {
         case .duplicates: duplicateGroups.count
         case .trash: trashEntries?.count ?? result?.trashCount ?? 0
         case .dashboard: recommendedItems.count
+        case .insights: result?.insights?.findings.count ?? 0
         default: items(for: category).count
         }
     }
@@ -537,6 +541,41 @@ final class AppModel: ObservableObject {
             trashSelection = []
             refreshTrash()
             refreshVolume()
+        }
+    }
+
+    // MARK: - Storage Insights actions
+
+    /// Runs a Storage Insights button. Removal never happens directly: the items are ticked and the usual
+    /// Move to Trash confirmation opens, so the same safety checks and Put Back apply.
+    func perform(_ action: Finding.Action, for finding: Finding) {
+        switch action {
+        case let .reveal(path):
+            reveal([path])
+        case let .trash(paths):
+            let allowed = paths.filter { Self.isDeletable($0) && FileManager.default.fileExists(atPath: $0) }
+            guard !allowed.isEmpty else { return }
+            for path in allowed where itemIndex[path] == nil {
+                let size = result?.folderSizes[path] ?? TrashReader.allocatedSize(of: path)
+                let item = Item(path: path, name: (path as NSString).lastPathComponent, size: size, lastUsed: nil, modified: nil,
+                                isDirectory: result?.folderSizes[path] != nil, safety: finding.safety, note: finding.title)
+                spaceLensItems[path] = item
+                itemIndex[path] = item
+            }
+            selection.formUnion(allowed)
+            confirmingTrash = true
+        case let .openURL(string):
+            if let url = URL(string: string) { NSWorkspace.shared.open(url) }
+        case let .openApp(bundleID):
+            if let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) {
+                NSWorkspace.shared.openApplication(at: url, configuration: NSWorkspace.OpenConfiguration())
+            }
+        case let .copy(text):
+            NSPasteboard.general.clearContents()
+            NSPasteboard.general.setString(text, forType: .string)
+            insightsMessage = "Copied “\(text)”. Paste it into Terminal\(finding.kind == .virtualMachine ? " inside the virtual machine" : "")."
+        case let .page(raw):
+            if let category = Category(rawValue: raw) { navigate(to: category) }
         }
     }
 

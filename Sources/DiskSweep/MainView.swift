@@ -18,6 +18,7 @@ struct MainView: View {
                 Group {
                     switch model.category {
                     case .dashboard: DashboardView()
+                    case .insights: InsightsView()
                     case .memory: MemoryView()
                     case .background: BackgroundItemsView()
                     case .speedSettings: SpeedSettingsView()

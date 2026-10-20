@@ -2,13 +2,13 @@ import Foundation
 import SwiftUI
 
 enum Category: String, CaseIterable, Identifiable, Hashable {
-    case dashboard, memory, background, speedSettings, systemJunk, developer, aiModels, installers, downloads, trash
+    case dashboard, insights, memory, background, speedSettings, systemJunk, developer, aiModels, installers, downloads, trash
     case large, old, duplicates, spaceLens
     case music
     case uninstaller, leftovers
 
     static let sections: [(title: String, categories: [Category])] = [
-        ("Smart Care", [.dashboard]),
+        ("Smart Care", [.dashboard, .insights]),
         ("Speed", [.memory, .background, .speedSettings]),
         ("Cleanup", [.systemJunk, .developer, .aiModels, .installers, .downloads, .trash]),
         ("Files", [.large, .old, .duplicates, .spaceLens]),
@@ -26,6 +26,7 @@ enum Category: String, CaseIterable, Identifiable, Hashable {
     var title: String {
         switch self {
         case .dashboard: "Smart Care"
+        case .insights: "Storage Insights"
         case .memory: "Memory"
         case .background: "Background Items"
         case .speedSettings: "Speed Settings"
@@ -48,6 +49,7 @@ enum Category: String, CaseIterable, Identifiable, Hashable {
     var symbol: String {
         switch self {
         case .dashboard: "sparkles"
+        case .insights: "wand.and.stars"
         case .memory: "memorychip"
         case .background: "gearshape.2"
         case .speedSettings: "speedometer"
@@ -72,6 +74,7 @@ enum Category: String, CaseIterable, Identifiable, Hashable {
         case .memory: "What's using your Mac's memory right now. Quitting the apps at the top of the list is the most effective way to speed up a Mac that's running slowly."
         case .background: "Helpers that apps leave running in the background or start at login. Switching one off stops it now and keeps it from starting again. Apple's own system items are never shown."
         case .speedSettings: "Settings in macOS and Chrome that make a real difference on a slow Mac. DiskSweep only reads them. Each tip opens the right place so you can switch it yourself, and the ticks update when you come back."
+        case .insights: "DiskSweep looks at everything on your disk, including hidden folders, virtual machines, your Photos library and space macOS manages, and explains in plain words what's using it, what changed since your last scan and what you can do."
         case .dashboard: "A summary of everything DiskSweep found. Start with the recommended items: they're safe to remove and macOS or your apps rebuild them as needed."
         case .systemJunk: "App caches and log files. Apps rebuild caches automatically, so these are usually safe to remove. Quit the app first for best results."
         case .developer: "Package-manager caches (npm, pip, Homebrew, Cargo…), Xcode data and project build folders like node_modules, target and .venv. All of them can be downloaded or rebuilt."
@@ -160,6 +163,8 @@ struct ScanResult: Codable {
     var folderSizes: [String: Int64] = [:]
     var deniedCount = 0
     var deniedSamples: [String] = []
+    /// Storage Insights. Optional so results cached by older versions still load.
+    var insights: StorageReport? = nil
     var scannedFiles = 0
     var scannedBytes: Int64 = 0
     var duration: TimeInterval = 0
